@@ -99,6 +99,7 @@ import {
   type SessionPromptValue,
   type SessionRenameValue,
   type SessionSearchResult,
+  type StreamChunk,
   type WorkspaceCreateValue,
   type WorkspaceId,
   type WorkspaceListValue,
@@ -182,6 +183,37 @@ function innerCandidates(method: string, req: Record<string, unknown>): Record<s
   return [{ request: req }, { _request: req }, req]
 }
 
+/** Expand the RC2 dsh-llm compact reconnect stream, retaining chunk indexes.
+ * Unknown/malformed records fail closed; a partial replay would duplicate text
+ * when the next baseline arrives. No model/runtime dependency is needed here.
+ */
+function reconnectChunks(stream: unknown): StreamChunk[] | undefined {
+  if (!Array.isArray(stream)) return undefined
+  const chunks: StreamChunk[] = []
+  for (const value of stream) {
+    if (value === null || typeof value !== 'object') return undefined
+    const record = value as Record<string, unknown>
+    if (record.type === 'chunk') {
+      const chunk = record.chunk
+      if (chunk === null || typeof chunk !== 'object' || typeof (chunk as { type?: unknown }).type !== 'string') return undefined
+      chunks.push(chunk as StreamChunk)
+      continue
+    }
+    const type = record.type
+    if (type !== 'text-chunks' && type !== 'reasoning-chunks' && type !== 'tool-call-chunks') return undefined
+    const texts = type === 'tool-call-chunks' ? record.args : record.texts
+    if (!Array.isArray(texts) || texts.length === 0 || !texts.every(t => typeof t === 'string')
+      || !Array.isArray(record.dt) || record.dt.length !== texts.length - 1
+      || !Number.isSafeInteger(record.index) || (record.index as number) < 0) return undefined
+    for (const text of texts) {
+      chunks.push(type === 'tool-call-chunks'
+        ? { type: 'tool-call-delta', index: record.index as number, argumentsDelta: text }
+        : { type: type === 'text-chunks' ? 'text-delta' : 'reasoning-delta', index: record.index as number, text })
+    }
+  }
+  return chunks
+}
+
 /** Newest `updatedAt` among the sessions of one derived workspace. */
 function newestSessionAt(sessions: readonly SessionSummary[], ws: WorkspaceView): number {
   let newest = 0
@@ -205,7 +237,7 @@ export class HarnessClient implements Disposable {
    * frame carries the position; the `chunk` frames that follow only carry the
    * attempt id, so the mapping is what turns a delta into a placeable item.
    */
-  private readonly followAttempts = new Map<string, { turn: number; step: number }>()
+  private readonly followAttempts = new Map<string, { turn: number; step: number; nextIndex: number }>()
   /**
    * Last durable seq seen per session on the follow stream.
    *
@@ -697,8 +729,15 @@ export class HarnessClient implements Disposable {
    * happens the call rejects with the host's error; the caller surfaces it as an
    * "search unavailable here" notice rather than a hard failure.
    */
-  searchSessions(query: string): Promise<SessionSearchResult> {
-    return this.rpc<SessionSearchResult>('session/search', { query })
+  async searchSessions(query: string): Promise<SessionSearchResult> {
+    const value = await this.rpc<SessionSearchResult & {
+      items?: NonNullable<SessionSearchResult['results']>
+      hasMore?: boolean
+    }>('session/search', { query })
+    // 0.2.2 returns bounded {items, hasMore}, not {results, total}. There
+    // is no exact total when hasMore is true; do not invent one for the UI.
+    if (Array.isArray(value.items)) return { results: value.items }
+    return value // legacy hosts and their optional total remain supported
   }
 
   /**
@@ -964,6 +1003,7 @@ export class HarnessClient implements Disposable {
           if (event === undefined) continue
           sink.buffer.push({ type: 'session/event', sessionId, event } as unknown as MuxFrame)
         }
+        this.restoreAssistantBaseline(sink, sessionId, f.assistantStream)
         this.opts.log(`follow: snapshot with ${String(records.length)} record(s), cursor=${String(f.cursor)}`)
         return
       }
@@ -986,12 +1026,44 @@ export class HarnessClient implements Disposable {
     }
   }
 
+  /** RC2 snapshots include the complete active attempt, not a replayed start.
+   * Seed its coordinates and replay only chunks not already delivered to this
+   * sink. Automatic socket reconnect keeps the sink/model (and nextIndex), while
+   * a new subscription clears both. Durable messages remain authoritative.
+   */
+  private restoreAssistantBaseline(sink: ActiveSink, sessionId: SessionId, value: unknown): void {
+    if (value === undefined) return // older hosts have no reconnect baseline
+    if (value === null || typeof value !== 'object') return
+    const baseline = value as Record<string, unknown>
+    const active = baseline.activeAttempt
+    if (active === undefined) { this.followAttempts.clear(); return }
+    if (active === null || typeof active !== 'object') return
+    const attempt = active as Record<string, unknown>
+    if (typeof attempt.attemptId !== 'string' || attempt.attemptId === ''
+      || !Number.isSafeInteger(attempt.turn) || !Number.isSafeInteger(attempt.step)
+      || !Number.isSafeInteger(attempt.nextIndex) || (attempt.nextIndex as number) < 0) return
+    const chunks = reconnectChunks(attempt.stream)
+    if (chunks === undefined || chunks.length !== attempt.nextIndex) return
+    const id = attempt.attemptId
+    const known = this.followAttempts.get(id)
+    if (known !== undefined && (known.turn !== attempt.turn || known.step !== attempt.step
+      || known.nextIndex > chunks.length)) return
+    const position = known ?? { turn: attempt.turn as number, step: attempt.step as number, nextIndex: 0 }
+    this.followAttempts.clear()
+    this.followAttempts.set(id, position)
+    for (let index = position.nextIndex; index < chunks.length; index++) {
+      this.onAssistantStreamFrame(sink, sessionId, {
+        type: 'chunk', attemptId: id, revision: 0, index, time: 0, chunk: chunks[index]!,
+      })
+    }
+  }
+
   /** Fold one live assistant frame into an `assistant/stream` internal frame. */
   private onAssistantStreamFrame(sink: ActiveSink, sessionId: SessionId, frame: AssistantStreamFrame | undefined): void {
     if (frame === undefined || typeof frame !== 'object') return
     switch (frame.type) {
       case 'start':
-        this.followAttempts.set(frame.attemptId, { turn: frame.turn, step: frame.step })
+        this.followAttempts.set(frame.attemptId, { turn: frame.turn, step: frame.step, nextIndex: 0 })
         return
       case 'chunk': {
         const at = this.followAttempts.get(frame.attemptId)
@@ -1000,6 +1072,13 @@ export class HarnessClient implements Disposable {
         // would scatter the text. Drop it — the durable `assistant/message`
         // that closes the attempt carries the full text anyway.
         if (at === undefined) return
+        // Baseline replay and live deltas share the same dense chunk index.
+        // A stale frame must not append twice; a gap waits for a new baseline
+        // or the durable message rather than presenting reordered text.
+        if (Number.isSafeInteger(frame.index)) {
+          if (frame.index !== at.nextIndex) return
+          at.nextIndex += 1
+        } else return
         sink.buffer.push({
           type: 'assistant/stream',
           sessionId,
