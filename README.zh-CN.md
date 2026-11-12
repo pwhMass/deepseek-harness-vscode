@@ -4,6 +4,8 @@
 
 <h1 align="center">DeepSeek Harness Connector for VS Code</h1>
 
+> **RC2 兼容 fork：** 本分支适配的是 **DSH 0.2.2-rc.2**。本地 VSIX 安装、修复范围和测试命令见[兼容说明](RC2-COMPATIBILITY.md)，实际验证结果见[进度与验收](STATUS.md)。下方市场链接与发布历史属于原上游项目，不代表市场版本已包含本分支的补丁。
+
 <p align="center">
   <strong>同一个 Harness。同一个工作区。同一个会话。</strong><br>
   你的 agent 继续在原来的地方跑。这个插件只是给它前面接上一个原生的 VS Code 客户端——连上本机这个

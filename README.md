@@ -4,6 +4,8 @@
 
 <h1 align="center">DeepSeek Harness Connector for VS Code</h1>
 
+> **RC2 compatibility fork:** This branch targets **DSH 0.2.2-rc.2**. See [compatibility notes, local VSIX installation and test commands](RC2-COMPATIBILITY.md) and [verification status](STATUS.md). Marketplace links and release history below describe the original upstream extension, not this patched build.
+
 <p align="center">
   <strong>Same Harness. Same Workspace. Same Session.</strong><br>
   Your agent keeps running wherever it already is. This puts a native VS Code client in front of it:

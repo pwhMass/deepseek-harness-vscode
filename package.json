@@ -1,13 +1,13 @@
 {
   "name": "harness-connector-deepseek",
-  "displayName": "DeepSeek Harness Connector",
+  "displayName": "DeepSeek Harness Connector (RC2 fork)",
   "description": "Native VS Code client for DeepSeek Harness. Connect to your existing local Harness instance and continue the same workspaces and sessions directly inside VS Code.",
   "version": "0.4.1",
   "publisher": "lucasliang",
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "https://github.com/YichuAI/deepseek-harness-vscode"
+    "url": "https://github.com/pwhMass/deepseek-harness-vscode"
   },
   "engines": {
     "vscode": "^1.85.0"
@@ -402,6 +402,8 @@
     "watch": "node esbuild.mjs --watch",
     "gen-icon": "tsx scripts/gen-icon.ts",
     "integration-test": "tsx scripts/integration-test.ts",
+    "rc2-test": "node --import tsx scripts/stream-reconnect-test.ts",
+    "rc2-live-test": "node --import tsx scripts/rc2-live-test.ts",
     "protocol-test": "tsx scripts/protocol-test.ts",
     "protocol-probe": "tsx scripts/protocol-probe.ts",
     "verify-webui": "tsx scripts/verify-webui.ts",
