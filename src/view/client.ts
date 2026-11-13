@@ -48,6 +48,13 @@ export const CLIENT_SCRIPT = /* js */ `
   // a streamed chunk re-render ONE row instead of the whole conversation.
   let itemNodes = new Map();
   let transcriptEmpty = false;
+  // Pure webview state: scoped to the selected session, never sent to the Host.
+  let transcriptSession = null;
+  let transcriptLayout = '';
+  let foldOpen = new Map();
+  let disclosureNodes = new Map();
+  let foldAliases = new Map();
+  let processNodes = new Map();
   let lastSessionsSig = '';
   let currentReviews = [];
   let currentApprovals = [];
@@ -671,7 +678,7 @@ export const CLIENT_SCRIPT = /* js */ `
     // snapshot at all (the connection state may have changed).
     const msgs = $('messages');
     const snap = mergeSnapshot(state);
-    if (snap && snap.renderVersion !== lastRenderVersion) {
+    if (snap && (snap.renderVersion !== lastRenderVersion || snap.sessionId !== transcriptSession)) {
       lastRenderVersion = snap.renderVersion;
       renderTranscript(msgs, snap, state.activeSessionId);
       firstRunShown = false;
@@ -1522,8 +1529,8 @@ export const CLIENT_SCRIPT = /* js */ `
     }
     // No identity stamp (a hand-built snapshot, e.g. in a test): fall back to
     // reading the content itself.
-    const f = [item.kind, item.seq, item.text || '', item.state || '',
-      item.running ? '1' : '', item.streaming ? '1' : '',
+    const f = [item.kind, item.seq, item.text || '', item.reasoning || '', item.state || '',
+      (item.toolCallIds || []).join(','), item.running ? '1' : '', item.streaming ? '1' : '',
       item.result ? (item.result.text + (item.result.isError ? '!' : '')) : ''];
     if (item.kind === 'tool' && item.reviewId) f.push(reviewSigFor(item.reviewId));
     // A changed-files card carries no text of its own, so its signature is the
@@ -1561,10 +1568,133 @@ export const CLIENT_SCRIPT = /* js */ `
     return '';
   }
 
+  function foldIdentity(item) {
+    const key = itemKey(item);
+    return foldAliases.get(key) || key;
+  }
+
+  /** Native details provides keyboard interaction and an accessible expanded state. */
+  function disclosure(key, className, label) {
+    const previous = disclosureNodes.get(key);
+    // Native toggle events are queued. Read the live property too, so a chunk
+    // arriving immediately after a click cannot undo that click before toggle.
+    if (previous) foldOpen.set(key, previous.open);
+    const el = document.createElement('details');
+    el.className = className;
+    el.open = foldOpen.get(key) === true;
+    disclosureNodes.set(key, el);
+    const head = document.createElement('summary');
+    head.className = className + '-head';
+    head.textContent = label;
+    const body = document.createElement('div');
+    body.className = className + '-body';
+    el.appendChild(head);
+    el.appendChild(body);
+    el.addEventListener('toggle', function () {
+      // Ignore queued events from a row replaced by a streaming revision.
+      if (disclosureNodes.get(key) !== el || el.isConnected === false) return;
+      foldOpen.set(key, el.open);
+    });
+    return { el: el, head: head, body: body };
+  }
+
+  /**
+   * Presentation only. There is no final-answer flag on this projection. Keep
+   * the latest text after the last tool visible; fold only demonstrable work
+   * sequences, never an ordinary text-only exchange. User/status boundaries
+   * prevent a summary from swallowing another prompt, stopped turn or error.
+   */
+  function planProcessGroups(items, running) {
+    const placement = new Map();
+    const groups = new Map();
+    let segment = [];
+    let anchor = 'history';
+    function flush(live) {
+      const work = segment.some(function (item) {
+        return item.kind === 'tool' || (item.kind === 'assistant'
+          && ((item.toolCallIds || []).length > 0 || (item.reasoning && !item.text)));
+      });
+      if (work) {
+        let lastTool = -1;
+        let finalIndex = -1;
+        for (let i = 0; i < segment.length; i++) {
+          const item = segment[i];
+          if (item.kind === 'tool' || (item.toolCallIds || []).length > 0) lastTool = i;
+        }
+        for (let i = lastTool + 1; i < segment.length; i++) {
+          const item = segment[i];
+          if (item.kind === 'assistant' && item.text && !(item.toolCallIds || []).length) finalIndex = i;
+        }
+        // A late/orphan tool result or an interrupted run may have no later
+        // answer. Keep its last ordinary text visible rather than hiding it all.
+        if (finalIndex < 0) {
+          for (let i = 0; i < segment.length; i++) {
+            const item = segment[i];
+            if (item.kind === 'assistant' && item.text && !(item.toolCallIds || []).length) finalIndex = i;
+          }
+        }
+        let members = [];
+        let runAnchor = anchor;
+        function finishRun() {
+          if (!members.length) return;
+          const key = 'process:' + runAnchor;
+          const tools = members.filter(function (item) { return item.kind === 'tool'; });
+          const updates = members.filter(function (item) { return item.kind === 'assistant' && item.text; }).length;
+          const thinking = members.some(function (item) { return !!item.reasoning; });
+          const errors = tools.filter(function (item) { return item.state === 'error'; }).length;
+          const parts = [live ? 'Agent working' : 'Execution process'];
+          if (tools.length) parts.push(tools.length + (tools.length === 1 ? ' tool' : ' tools'));
+          if (updates) parts.push(updates + (updates === 1 ? ' update' : ' updates'));
+          if (thinking) parts.push('Thinking');
+          if (errors) parts.push(errors + (errors === 1 ? ' error' : ' errors'));
+          const group = { key: key, items: members, label: parts.join(' · '), live: live, errors: errors };
+          groups.set(key, group);
+          for (const item of members) placement.set(itemKey(item), key);
+          members = [];
+        }
+        for (let i = 0; i < segment.length; i++) {
+          const item = segment[i];
+          // Exposed review/system/changes/answer rows are physical barriers: do
+          // not pull a later tool ahead of them when the process is expanded.
+          if ((item.kind === 'tool' && !item.reviewId) || (item.kind === 'assistant' && i !== finalIndex)) {
+            members.push(item);
+          } else {
+            finishRun();
+            runAnchor = foldIdentity(item);
+          }
+        }
+        finishRun();
+      }
+      segment = [];
+    }
+    for (const item of items) {
+      if (item.kind === 'user' || item.kind === 'status') {
+        flush(false);
+        anchor = itemKey(item);
+      } else {
+        segment.push(item);
+      }
+    }
+    flush(!!running);
+    return { placement: placement, groups: groups };
+  }
+
   function renderTranscript(msgs, snap, activeSessionId) {
+    if (transcriptSession !== snap.sessionId) {
+      transcriptSession = snap.sessionId;
+      itemNodes = new Map();
+      processNodes = new Map();
+      foldOpen = new Map();
+      disclosureNodes = new Map();
+      foldAliases = new Map();
+      transcriptLayout = '';
+      transcriptEmpty = false;
+    }
     const items = snap.items;
     if (items.length === 0) {
       itemNodes = new Map();
+      processNodes = new Map();
+      transcriptLayout = '';
       if (!transcriptEmpty) {
         msgs.innerHTML = '<div class="empty">' + (activeSessionId
           ? 'No messages yet. Send a prompt below.'
@@ -1574,9 +1704,25 @@ export const CLIENT_SCRIPT = /* js */ `
       return;
     }
     transcriptEmpty = false;
+    // A durable message replaces the sole active streaming uid. Carry its view
+    // identity forward so an expanded Thinking block does not close on settle.
+    const keys = new Set(items.map(itemKey));
+    const retired = Array.from(itemNodes.values()).filter(function (known) {
+      return known.item && known.item.kind === 'assistant' && known.item.streaming && !keys.has(itemKey(known.item));
+    });
+    const settled = items.filter(function (item) {
+      return item.kind === 'assistant' && !item.streaming && !itemNodes.has(itemKey(item));
+    });
+    if (retired.length === 1 && settled.length === 1) {
+      foldAliases.set(itemKey(settled[0]), foldIdentity(retired[0].item));
+    }
+    const plan = planProcessGroups(items, snap.running);
+    const layout = items.map(function (item) {
+      const key = itemKey(item);
+      return key + '=' + (plan.placement.get(key) || '');
+    }).join('|') + Array.from(plan.groups.values()).map(function (group) { return group.label; }).join('|');
     const next = new Map();
-    const order = [];
-    let changed = false;
+    let changed = layout !== transcriptLayout;
     for (let i = 0; i < items.length; i++) {
       const item = items[i];
       const key = itemKey(item);
@@ -1589,18 +1735,37 @@ export const CLIENT_SCRIPT = /* js */ `
         el = renderItem(item);
         changed = true;
       }
-      next.set(key, { el: el, sig: sig });
-      order.push(el);
+      next.set(key, { el: el, sig: sig, item: item });
     }
-    // A shorter list with nothing new still has to be repainted (an item was
-    // dropped), which is why both tests are needed.
     if (!changed && next.size === itemNodes.size) return;
+    const previousTop = msgs.scrollTop;
+    const nearBottom = typeof msgs.clientHeight !== 'number'
+      || msgs.scrollHeight - previousTop - msgs.clientHeight < 80;
     itemNodes = next;
-    // Re-attach in order. A reused element was only ever detached, never
-    // rebuilt, so its subtree — and the markdown inside it — is still there.
+    transcriptLayout = layout;
+    const nextProcesses = new Map();
+    for (const group of plan.groups.values()) {
+      const node = processNodes.get(group.key) || disclosure(group.key, 'agent-process', group.label);
+      node.head.textContent = group.label;
+      node.el.className = 'agent-process' + (group.live ? ' running' : '') + (group.errors ? ' has-errors' : '');
+      node.body.innerHTML = '';
+      for (const item of group.items) node.body.appendChild(next.get(itemKey(item)).el);
+      nextProcesses.set(group.key, node);
+    }
+    processNodes = nextProcesses;
+    const placed = new Set();
     msgs.innerHTML = '';
-    for (let k = 0; k < order.length; k++) msgs.appendChild(order[k]);
-    msgs.scrollTop = msgs.scrollHeight;
+    for (const item of items) {
+      const key = itemKey(item);
+      const groupKey = plan.placement.get(key);
+      if (!groupKey) msgs.appendChild(next.get(key).el);
+      else if (!placed.has(groupKey)) {
+        msgs.appendChild(processNodes.get(groupKey).el);
+        placed.add(groupKey);
+      }
+    }
+    // Reading an expanded earlier step must not yank the reader to the bottom.
+    msgs.scrollTop = nearBottom ? msgs.scrollHeight : previousTop;
   }
 
   // ─── per-item render ────────────────────────────────────────────────────────
@@ -1805,10 +1970,15 @@ export const CLIENT_SCRIPT = /* js */ `
 
   function renderTool(item) {
     const d = document.createElement('div');
-    d.className = 'tool' + (item.state === 'error' ? ' error' : '');
+    const foldKey = 'tool:' + foldIdentity(item);
+    d.className = 'tool' + (item.state === 'error' ? ' error' : '') + (foldOpen.get(foldKey) ? ' open' : '');
 
     const head = document.createElement('div');
     head.className = 't-head';
+    head.setAttribute('role', 'button');
+    head.setAttribute('tabindex', '0');
+    head.setAttribute('aria-expanded', String(foldOpen.get(foldKey) === true));
+    head.setAttribute('aria-label', 'Tool details: ' + item.name);
     const arrow = document.createElement('span'); arrow.className = 't-arrow'; arrow.textContent = '▸';
     const name = document.createElement('span'); name.className = 't-name';
     name.textContent = '🔧 ' + escapeText(item.name);
@@ -1823,7 +1993,19 @@ export const CLIENT_SCRIPT = /* js */ `
     head.appendChild(name);
     if (title.textContent) head.appendChild(title);
     head.appendChild(state);
-    head.addEventListener('click', () => d.classList.toggle('open'));
+    function toggleTool() {
+      const open = foldOpen.get(foldKey) !== true;
+      foldOpen.set(foldKey, open);
+      d.classList.toggle('open', open);
+      head.setAttribute('aria-expanded', String(open));
+    }
+    head.addEventListener('click', toggleTool);
+    head.addEventListener('keydown', function (event) {
+      if (event.key === 'Enter' || event.key === ' ') {
+        event.preventDefault();
+        toggleTool();
+      }
+    });
     d.appendChild(head);
 
     // Approvals are NOT drawn here any more. They live in the pending panel
@@ -2071,9 +2253,9 @@ export const CLIENT_SCRIPT = /* js */ `
     head.appendChild(copy);
     d.appendChild(head);
     if (item.reasoning) {
-      const r = document.createElement('div');
-      r.className = 'reasoning'; r.textContent = item.reasoning;
-      d.appendChild(r);
+      const r = disclosure('thinking:' + foldIdentity(item), 'reasoning', 'Thinking');
+      r.body.textContent = item.reasoning;
+      d.appendChild(r.el);
     }
     const body = document.createElement('div');
     body.className = 'message-body';

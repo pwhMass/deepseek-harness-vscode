@@ -1,6 +1,30 @@
 # DSH 0.2.2-rc.2 compatibility work
 
-Updated: 2026-11-14. Status: **0.4.2 sidebar UI polish** implemented on `feat/ui-polish`, based on `8affb63`; core protocol compatibility with **0.2.2-rc.2 retained**. **WSL installation, cookie authentication and native session attachment verified** after the user's explicit follow-up requests; full visual/theme/code-copy acceptance remains pending.
+Updated: 2026-11-14. Status: **0.4.3 default-collapsed execution/Thinking UI** implemented and release gates passed on `feat/ui-polish`; **0.2.2-rc.2 compatibility retained**. WSL installation of 0.4.2, cookie authentication and native session attachment were verified earlier; the explicitly authorized 0.4.3 WSL update is recorded separately after packaging. Full native visual/theme/code-copy acceptance remains pending.
+
+## 0.4.3 default folding — verified implementation batch
+
+User request: keep final answers prominent and collapse most intermediate Agent output, tools and Thinking by default, with opt-in expansion similar to the Web UI.
+
+- Only `src/view/client.ts`, `src/view/styles.ts`, release version/lock metadata and release records change. No new dependencies, CSP, protocol, credentials, session-binding, approvals, native review/diff or `src/harness/**` change.
+- Thinking uses a native, default-closed `details`/`summary` disclosure. Execution summaries fold tool rows and demonstrable intermediate assistant messages and retain readable tool/update/error counts plus a working indicator. Code highlighting and code/message copy remain available on expansion.
+- Latest ordinary text stays visible, including when the last text precedes a failed, late or orphan tool result. The renderer does not fabricate a final-answer flag or hide ordinary text-only exchanges where it cannot reliably identify process output.
+- User/turn boundaries are never crossed. Review-linked tools, changed-files, system context and visible answer rows split physical process fragments; expanding preserves the original item order. Review controls and pending approvals/questions are not hidden inside a default-closed process. Start/stop/error status lines remain visible.
+- Process/Thinking/tool expansion choices survive ordinary streaming/result revisions; queued native toggle events from retired nodes cannot overwrite a new disclosure. The normal unique streaming-to-durable replacement carries the Thinking identity and following-fragment anchor forward. Switching sessions resets these view-only choices, including sessions with equal renderVersion. A scrolled-up reader is no longer forcibly returned to the bottom.
+- New CSS uses VS Code theme variables, closed-body guards and native keyboard/focus behavior; tool headers support Enter/Space and announce expanded state.
+
+Verification:
+
+- `npm run typecheck`: passed.
+- `node --import tsx scripts/protocol-test.ts`: **602 assertions passed**, including incremental render costs, pending questions/approvals and granular native review actions. Final rerun output stays local in ignored `dist/ui-0.4.3-protocol.log`.
+- `DSH_TEST_RUNTIME=/path/to/isolated-rc2-runtime npm run rc2-test`: passed against the existing isolated **0.2.2-rc.2** runtime, no Host started.
+- `node --import tsx dist/ui-polish-test.ts`: **55 existing UI checks passed**.
+- `node --import tsx dist/ui-folding-test.ts`: **61 new production-renderer/VM/DOM-stub checks passed**. Covers default closures, retained/highlighted answer, opt-in expansion, tool keyboard state, no-work repaint cost, revision/settlement state, stale toggles, session isolation/equal-version switch, review/changes/system barriers, exact expanded chronology, interrupted/late/orphan-tool text fallback, steer boundaries, partial history, scrolled-up position and CSS closed/focus guards. An initial probe omitted the production `shortPath` helper; adding that helper corrected the probe, not product code. Generated probes are local acceptance artifacts under ignored `dist/`, not shipped source tests or native visual acceptance.
+- Independent read-only design review identified two real edge cases (last text before a late tool; reordering across exposed review/system/changes). Both are fixed and covered in the 61 checks; the ordinary stream-settlement anchor counterexample is covered too.
+- Production build and `npx --no-install vsce package --no-dependencies --ignoreFile dist/ui-package.vscodeignore --out dist/deepseek-harness-vscode-0.4.3-folding.vsix`: passed. The generated local ignore file inherits the repository's exclusions and includes only `dist/extension.js` from build output, preventing old VSIX checksums and local probes/logs from leaking into the new package without changing source ignore rules.
+- Artifact: `dist/deepseek-harness-vscode-0.4.3-folding.vsix`; final SHA256 is recorded beside it in `dist/deepseek-harness-vscode-0.4.3-folding.vsix.sha256` after the documentation-inclusive packaging pass, avoiding a self-referential archive hash.
+
+Limits/next acceptance: this projection has no explicit final-answer field, so multiple ordinary text-only assistant messages remain unfolded. Review-visible barriers may produce more than one process summary per turn. In uncommon settlement/delta ordering, a physical fragment can move or split and its expanded choice may reset; all content is retained. Native VS Code visual, real keyboard/clipboard and light/dark/high-contrast acceptance are not claimed by VM tests. User explicitly selected direct WSL update after the release gates; install/byte verification will be recorded separately. Existing `127.0.0.1:3080` / `paste` authentication settings must remain untouched.
 
 ## WSL authentication — 2026-11-14 follow-up
 

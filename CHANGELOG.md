@@ -5,6 +5,22 @@ All notable changes to this project are documented in this file.
 The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),  
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.4.3] — 2026-11-14
+
+### Changed
+
+- **Thinking is collapsed by default**, using native keyboard-accessible disclosures instead of an always-expanded reasoning block.
+- **Execution process is collapsed by default.** Tool calls and identifiable intermediate assistant output share compact process summaries, with tool/update/error counts and a working indicator. The latest ordinary assistant text stays visible; interrupted runs or late tools do not hide the only answer. Ordinary text-only exchanges are conservatively left visible because the projection has no explicit final-answer flag.
+- Review-linked tools, changed-files cards, user prompts, system context and turn status stay outside the process fold. Exposed rows split physical process groups so expanding them preserves transcript order. Approvals and questions remain in the separate pending panel.
+- Expanded Thinking/tool/process choices survive revisions and the usual one-to-one streaming-to-durable handoff. Choices reset when changing sessions or recreating the webview. Reading earlier work no longer forces bottom scrolling; native summary focus and tool Enter/Space interaction are supported.
+- No protocol, credentials, approval/review/diff, session-binding or extension identity change; the 0.4.2 highlighting/copy controls are retained.
+
+### Verification and limits
+
+- Typecheck, **602 protocol assertions**, offline RC2 regression, **55 existing UI checks**, **61 new folding checks**, production build and VSIX packaging passed. Independent review's interrupted-answer and exposed-row-order counterexamples are covered by regressions.
+- VM/DOM-stub tests are not native visual acceptance. WSL update is explicitly authorized by the user; installation verification is recorded separately in [STATUS.md](STATUS.md). Theme, real keyboard/clipboard and native rendering remain for acceptance after reload.
+- No explicit final-answer flag is invented. Inherited delta ordering can change a physical process fragment during uncommon stream settlement; that fragment's expanded choice may reset, but content is retained and can be reopened.
+
 ## [0.4.2] — 2026-11-14
 
 ### Added

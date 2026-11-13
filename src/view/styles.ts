@@ -67,7 +67,10 @@ button.icon { padding: 4px 6px; }
 .msg .copy-message { margin-left: auto; }
 .msg button[data-copy-state="success"] { color: var(--vscode-testing-iconPassed, var(--vscode-foreground)); }
 .msg button[data-copy-state="error"] { color: var(--vscode-errorForeground); border-color: var(--vscode-inputValidation-errorBorder, var(--vscode-errorForeground)); }
-.msg .reasoning { color: var(--vscode-descriptionForeground); font-style: italic; line-height: 1.5; margin: 8px 0; border-left: 2px solid var(--vscode-panel-border, var(--vscode-widget-border)); padding-left: 8px; white-space: pre-wrap; }
+.msg .reasoning { min-width: 0; color: var(--vscode-descriptionForeground); font-style: normal; line-height: 1.5; margin: 8px 0; border-left: 2px solid var(--vscode-panel-border, var(--vscode-widget-border)); padding-left: 8px; white-space: normal; }
+.msg .reasoning-head { display: list-item; padding: 3px 0; cursor: pointer; font-size: 0.9em; font-weight: 500; line-height: 1.5; white-space: normal; overflow-wrap: anywhere; }
+.msg .reasoning-body { min-width: 0; max-height: 24rem; overflow: auto; padding: 6px 0 4px; border-top: 1px solid var(--vscode-panel-border, var(--vscode-widget-border)); font-size: 0.92em; line-height: 1.6; white-space: pre-wrap; overflow-wrap: anywhere; }
+.msg .reasoning:not([open]) > .reasoning-body { display: none; }
 .msg .usage { font-size: 0.85em; line-height: 1.4; color: var(--vscode-descriptionForeground); margin-top: 8px; }
 
 /* Markdown resets inherited plain-message whitespace; code alone keeps it. */
@@ -129,6 +132,23 @@ button.icon { padding: 4px 6px; }
 
 /* Preserve readable contrast when a high-contrast theme's token colors vary. */
 body.vscode-high-contrast .msg .hljs span, body.vscode-high-contrast-light .msg .hljs span { color: var(--vscode-editor-foreground); }
+
+/* Native disclosures keep intermediate work out of the final answer's hierarchy.
+   Only open bodies get a layout override, preserving the browser's closed state. */
+.agent-process { min-width: 0; max-width: 100%; border: 1px solid var(--vscode-contrastBorder, var(--vscode-panel-border, var(--vscode-widget-border))); border-radius: 4px; background: var(--vscode-editorWidget-background, var(--vscode-sideBar-background)); }
+.agent-process-head { display: list-item; padding: 6px 8px; cursor: pointer; font-size: 0.9em; font-weight: 500; line-height: 1.5; color: var(--vscode-descriptionForeground); white-space: normal; overflow-wrap: anywhere; }
+.agent-process[open] > .agent-process-head { color: var(--vscode-foreground); border-bottom: 1px solid var(--vscode-panel-border, var(--vscode-widget-border)); }
+.agent-process.running > .agent-process-head { color: var(--vscode-charts-yellow, var(--vscode-foreground)); }
+.agent-process.has-errors > .agent-process-head { color: var(--vscode-errorForeground); }
+.agent-process-head:hover, .msg .reasoning-head:hover { background: var(--vscode-list-hoverBackground); }
+.agent-process-head:focus-visible, .msg .reasoning-head:focus-visible { outline: 2px solid var(--vscode-focusBorder); outline-offset: 2px; }
+.agent-process-body { min-width: 0; padding: 8px; }
+.agent-process[open] > .agent-process-body { display: flex; flex-direction: column; gap: 8px; }
+.agent-process:not([open]) > .agent-process-body { display: none; }
+.agent-process-body > .tool, .agent-process-body > .msg { min-width: 0; max-width: 100%; margin: 0; }
+.agent-process-body > .msg { padding: 8px; }
+.agent-process-body > .msg .msg-head { margin-bottom: 6px; }
+.msg .reasoning[open] > .reasoning-head { color: var(--vscode-foreground); }
 
 /* System item (collapsed by default) */
 .system {
