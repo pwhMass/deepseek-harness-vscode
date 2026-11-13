@@ -2,7 +2,7 @@
   "name": "harness-connector-deepseek",
   "displayName": "DeepSeek Harness Connector (RC2 fork)",
   "description": "Native VS Code client for DeepSeek Harness. Connect to your existing local Harness instance and continue the same workspaces and sessions directly inside VS Code.",
-  "version": "0.4.1",
+  "version": "0.4.2",
   "publisher": "lucasliang",
   "license": "MIT",
   "repository": {
@@ -414,10 +414,12 @@
     "typecheck": "tsc --noEmit"
   },
   "devDependencies": {
+    "@highlightjs/cdn-assets": "11.12.0",
     "@types/markdown-it": "^14.1.2",
     "@types/node": "^20.11.0",
     "@types/potrace": "^2.1.5",
     "@types/vscode": "^1.85.0",
+    "@vscode/codicons": "0.0.46-24",
     "@vscode/vsce": "^3.2.0",
     "esbuild": "^0.24.0",
     "markdown-it": "^15.0.0",

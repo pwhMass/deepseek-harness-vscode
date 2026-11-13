@@ -69,12 +69,37 @@ export const CLIENT_SCRIPT = /* js */ `
   let atTimer = null;
 
   // ─── markdown renderer (webview-only, html disabled!) ──────────────────────
-  const md = new MarkdownIt({ html: false, linkify: true, breaks: false });
+  function highlightCode(code, language) {
+    // No auto-detection: an unknown/missing grammar must remain escaped text.
+    // Bound synchronous highlighting work while a large response is streaming.
+    if (!language || code.length > 100000 || !window.hljs) return '';
+    try {
+      if (window.hljs.getLanguage(language)) {
+        return window.hljs.highlight(code, { language: language, ignoreIllegals: true }).value;
+      }
+    } catch { /* A grammar failure must not break the conversation. */ }
+    return '';
+  }
+  const md = new MarkdownIt({ html: false, linkify: true, breaks: false, highlight: highlightCode });
   // Override the default link renderer to add target=_blank + rel=noopener.
   // Guarded: the extension's no-markdown-it fallback stub returns an object
   // without a renderer, and touching renderer.rules unguarded would abort the
   // whole script — the exact failure mode this panel just came out of.
   if (md.renderer && md.renderer.rules) {
+    // Both fenced and indented blocks get a separate toolbar, never an overlay.
+    const codeBlock = function(tokens, idx, options) {
+      const token = tokens[idx];
+      const language = (token.info || '').trim().split(/\\s+/)[0];
+      const highlighted = options.highlight ? options.highlight(token.content, language) : '';
+      return '<div class="code-block"><div class="code-block-head">'
+        + '<span class="code-language">' + escapeText(language || 'Plain text') + '</span>'
+        + '<button type="button" class="secondary copy-code" title="Copy code" aria-label="Copy code">'
+        + '<i class="codicon codicon-copy" aria-hidden="true"></i><span>Copy</span></button></div>'
+        + '<pre><code class="hljs' + (language ? ' language-' + escapeText(language) : '') + '">'
+        + (highlighted || escapeText(token.content)) + '</code></pre></div>';
+    };
+    md.renderer.rules.fence = codeBlock;
+    md.renderer.rules.code_block = codeBlock;
     const defaultLinkRender = md.renderer.rules.link_open || function(tokens, idx, options, env, self) {
       return self.renderToken(tokens, idx, options);
     };
@@ -107,6 +132,71 @@ export const CLIENT_SCRIPT = /* js */ `
     try { return JSON.stringify(JSON.parse(raw), null, 2); } catch { return raw; }
   }
   function post(action) { vscode.postMessage(action); }
+
+  // Clipboard stays entirely inside the webview: no new host action or RPC.
+  async function copyText(text) {
+    try {
+      await navigator.clipboard.writeText(text);
+      return true;
+    } catch { /* Webview permissions can deny the async clipboard API. */ }
+    const active = document.activeElement;
+    const selection = window.getSelection();
+    const ranges = [];
+    if (selection) {
+      for (let i = 0; i < selection.rangeCount; i++) ranges.push(selection.getRangeAt(i).cloneRange());
+    }
+    const field = document.createElement('textarea');
+    field.className = 'clipboard-fallback';
+    field.value = text;
+    field.readOnly = true;
+    field.setAttribute('aria-label', 'Copy text');
+    document.body.appendChild(field);
+    try {
+      field.focus({ preventScroll: true });
+      field.select();
+      return document.execCommand('copy');
+    } catch {
+      return false;
+    } finally {
+      field.remove();
+      if (active && active.focus) active.focus({ preventScroll: true });
+      if (selection) {
+        selection.removeAllRanges();
+        for (const range of ranges) selection.addRange(range);
+      }
+    }
+  }
+
+  async function copyWithFeedback(button, text) {
+    if (button.disabled) return;
+    button.disabled = true;
+    const original = button.innerHTML;
+    const label = button.getAttribute('aria-label');
+    const status = $('copy-status');
+    if (status) status.textContent = '';
+    let copied = false;
+    try { copied = await copyText(text); } catch { /* Report a one-shot failure. */ }
+    const feedback = copied ? 'Copied' : 'Copy failed';
+    button.textContent = feedback;
+    button.dataset.copyState = copied ? 'success' : 'error';
+    button.setAttribute('aria-label', feedback);
+    if (status) status.textContent = feedback;
+    setTimeout(function () {
+      button.innerHTML = original;
+      button.setAttribute('aria-label', label);
+      delete button.dataset.copyState;
+      button.disabled = false;
+    }, 1800);
+  }
+
+  // Delegation survives streaming row replacement; only the code's text is copied.
+  $('messages').addEventListener('click', function (event) {
+    const button = event.target.closest && event.target.closest('button.copy-code');
+    if (!button || !$('messages').contains(button)) return;
+    const block = button.closest('.code-block');
+    const code = block && block.querySelector('pre code');
+    if (code) void copyWithFeedback(button, code.textContent || '');
+  });
 
   /**
    * The card a freshly installed extension shows before anything has connected.
@@ -457,8 +547,10 @@ export const CLIENT_SCRIPT = /* js */ `
     if (state.systemMessageCount > 0) {
       sysBtn.style.display = '';
       sysBtn.classList.toggle('active', state.showSystemMessages);
-      sysBtn.textContent = state.showSystemMessages ? 'SYS✓' : 'SYS';
+      sysBtn.innerHTML = '<i class="codicon codicon-terminal" aria-hidden="true"></i>';
       sysBtn.title = (state.showSystemMessages ? 'Hide' : 'Show') + ' ' + state.systemMessageCount + ' system message(s)';
+      sysBtn.setAttribute('aria-label', sysBtn.title);
+      sysBtn.setAttribute('aria-pressed', String(!!state.showSystemMessages));
     } else {
       sysBtn.style.display = 'none';
     }
@@ -1963,18 +2055,30 @@ export const CLIENT_SCRIPT = /* js */ `
     const d = document.createElement('div');
     d.className = 'msg ' + item.kind;
     if (item.kind === 'assistant' && item.streaming) d.dataset.streaming = 'true';
+    const head = document.createElement('div');
+    head.className = 'msg-head';
     const role = document.createElement('span');
     role.className = 'role';
     role.textContent = item.kind === 'user' ? 'You' : 'Assistant';
-    d.appendChild(role);
+    head.appendChild(role);
+    const copy = document.createElement('button');
+    copy.type = 'button';
+    copy.className = 'secondary copy-message';
+    copy.title = 'Copy message';
+    copy.setAttribute('aria-label', 'Copy message');
+    copy.innerHTML = '<i class="codicon codicon-copy" aria-hidden="true"></i><span>Copy</span>';
+    copy.addEventListener('click', function () { void copyWithFeedback(copy, item.text || ''); });
+    head.appendChild(copy);
+    d.appendChild(head);
     if (item.reasoning) {
       const r = document.createElement('div');
       r.className = 'reasoning'; r.textContent = item.reasoning;
       d.appendChild(r);
     }
     const body = document.createElement('div');
+    body.className = 'message-body';
     if (item.kind === 'assistant') {
-      body.className = 'md';
+      body.className = 'message-body md';
       body.innerHTML = renderMarkdown(item.text) || (item.streaming ? '' : '');
     } else {
       body.textContent = item.text || '';

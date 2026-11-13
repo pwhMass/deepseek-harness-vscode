@@ -4,22 +4,31 @@ export const STYLES = /* css */ `
 :root { color-scheme: light dark; }
 * { box-sizing: border-box; }
 body {
-  margin: 0; padding: 0; height: 100vh;
+  margin: 0; padding: 0; height: 100vh; min-width: 0; overflow-x: hidden;
   display: flex; flex-direction: column;
   font-family: var(--vscode-font-family, sans-serif);
   font-size: var(--vscode-font-size, 13px);
   color: var(--vscode-foreground);
   background: var(--vscode-sideBar-background);
 }
-.bar { padding: 8px 10px; border-bottom: 1px solid var(--vscode-panel-border, rgba(128,128,128,.2)); }
-.brand-bar { display: flex; align-items: center; gap: 8px; padding: 6px 10px; border-bottom: 1px solid var(--vscode-panel-border, rgba(128,128,128,.2)); }
+.bar { padding: 8px 10px; border-bottom: 1px solid var(--vscode-panel-border, var(--vscode-widget-border)); min-width: 0; }
+.brand-bar { display: flex; align-items: center; flex-wrap: wrap; gap: 6px 8px; padding: 8px 10px; border-bottom: 1px solid var(--vscode-panel-border, var(--vscode-widget-border)); }
 .brand-bar img { width: 20px; height: 20px; flex-shrink: 0; }
-.brand-bar .brand-name { font-weight: 600; font-size: 12px; flex: 1; }
-.brand-bar .toolbar { display: flex; gap: 2px; }
-.brand-bar .toolbar button { padding: 2px 6px; font-size: 11px; }
+.brand-bar .brand-name { font-weight: 600; font-size: 1em; flex: 1 1 auto; min-width: 0; overflow-wrap: anywhere; }
+.brand-bar .toolbar { display: flex; flex-wrap: wrap; gap: 2px; margin-left: auto; }
+.brand-bar .toolbar button { padding: 4px; min-width: 26px; min-height: 26px; background: none; color: var(--vscode-icon-foreground, var(--vscode-foreground)); }
+.brand-bar .toolbar button:hover { background: var(--vscode-toolbar-hoverBackground, var(--vscode-list-hoverBackground)); }
+.brand-bar .toolbar button.active { background: var(--vscode-toolbar-activeBackground, var(--vscode-list-activeSelectionBackground)); color: var(--vscode-list-activeSelectionForeground, var(--vscode-foreground)); }
+button.icon { display: inline-flex; align-items: center; justify-content: center; gap: 4px; }
+button .codicon, .subpanel-title .codicon { flex: 0 0 auto; font-size: 16px; }
+:where(button, input, textarea, select, a, [tabindex]):focus-visible { outline: 2px solid var(--vscode-focusBorder); outline-offset: 2px; }
+.sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; border: 0; }
+textarea.clipboard-fallback { position: fixed; left: -10000px; top: 0; width: 1px; height: 1px; min-height: 0; max-height: none; padding: 0; border: 0; opacity: 0; pointer-events: none; }
 .toggle-badge { font-size: 9px; background: var(--vscode-badge-background); color: var(--vscode-badge-foreground); border-radius: 8px; padding: 0 4px; margin-left: 2px; }
 .row { display: flex; gap: 6px; align-items: center; margin: 4px 0; }
-.status { display: flex; align-items: center; gap: 6px; font-weight: 600; }
+.status { display: flex; align-items: center; flex-wrap: wrap; gap: 6px; font-weight: 600; }
+#status-text, #host-info, #mux-status { overflow-wrap: anywhere; }
+#session-select { min-width: 0; flex: 1 1 0; }
 /* The manual connect/retry affordance rides in the status row, right-aligned so
    it reads as an action on the status rather than another toolbar icon. */
 .status #connect { margin-left: auto; padding: 2px 8px; font-size: 11px; }
@@ -46,47 +55,80 @@ button.icon { padding: 4px 6px; }
 .ws-name { font-weight: 600; }
 .ws-path { color: var(--vscode-descriptionForeground); font-size: 11px; word-break: break-all; }
 .ws-pending { color: var(--vscode-charts-yellow, #ca9c2e); font-size: 11px; margin-top: 2px; }
-#messages { flex: 1; overflow-y: auto; padding: 8px 10px; display: flex; flex-direction: column; gap: 8px; }
-.msg { padding: 6px 8px; border-radius: 4px; white-space: pre-wrap; word-break: break-word; }
-.msg.user { background: var(--vscode-input-background); border-left: 3px solid var(--vscode-charts-blue, #1b7fbd); }
-.msg.user .role { color: var(--vscode-charts-blue, #1b7fbd); }
-.msg.assistant { background: var(--vscode-editor-background); border-left: 3px solid var(--vscode-charts-green, #2da44e); }
-.msg.assistant .role { color: var(--vscode-charts-green, #2da44e); }
-.msg .role { font-weight: 600; font-size: 11px; display: block; margin-bottom: 2px; }
-.msg .reasoning { color: var(--vscode-descriptionForeground); font-style: italic; margin: 4px 0; border-left: 2px solid var(--vscode-panel-border); padding-left: 6px; }
-.msg .usage { font-size: 10px; color: var(--vscode-descriptionForeground); margin-top: 4px; }
+#messages { flex: 1 1 0; min-height: 0; min-width: 0; overflow-y: auto; overflow-x: hidden; padding: 10px; display: flex; flex-direction: column; gap: 12px; }
+#messages > * { flex-shrink: 0; }
+.msg { min-width: 0; max-width: 100%; padding: 10px 12px; border: 1px solid var(--vscode-contrastBorder, var(--vscode-panel-border, var(--vscode-widget-border))); border-radius: 6px; overflow-wrap: anywhere; }
+.msg.user { background: var(--vscode-input-background); color: var(--vscode-input-foreground, var(--vscode-foreground)); border-left: 3px solid var(--vscode-textLink-foreground); }
+.msg.assistant { background: var(--vscode-editor-background); color: var(--vscode-editor-foreground, var(--vscode-foreground)); }
+.msg .msg-head { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 6px 10px; margin-bottom: 8px; white-space: normal; }
+.msg .role { font-weight: 600; font-size: 0.92em; line-height: 1.4; }
+.msg .message-body { min-width: 0; line-height: 1.6; white-space: pre-wrap; }
+.msg .copy-message, .msg .copy-code { display: inline-flex; align-items: center; justify-content: center; gap: 5px; flex: 0 0 auto; max-width: 100%; padding: 4px 7px; font-size: 0.85em; line-height: 1.4; border: 1px solid var(--vscode-contrastBorder, var(--vscode-button-border, var(--vscode-panel-border))); border-radius: 3px; white-space: normal; }
+.msg .copy-message { margin-left: auto; }
+.msg button[data-copy-state="success"] { color: var(--vscode-testing-iconPassed, var(--vscode-foreground)); }
+.msg button[data-copy-state="error"] { color: var(--vscode-errorForeground); border-color: var(--vscode-inputValidation-errorBorder, var(--vscode-errorForeground)); }
+.msg .reasoning { color: var(--vscode-descriptionForeground); font-style: italic; line-height: 1.5; margin: 8px 0; border-left: 2px solid var(--vscode-panel-border, var(--vscode-widget-border)); padding-left: 8px; white-space: pre-wrap; }
+.msg .usage { font-size: 0.85em; line-height: 1.4; color: var(--vscode-descriptionForeground); margin-top: 8px; }
 
-/* Markdown content (assistant messages only). */
-.msg .md { line-height: 1.55; }
-.msg .md p { margin: 0 0 0.7em; }
-.msg .md p:last-child { margin-bottom: 0; }
-.msg .md h1, .msg .md h2, .msg .md h3, .msg .md h4 { margin: 1em 0 0.4em; line-height: 1.25; font-weight: 600; }
-.msg .md h1 { font-size: 1.25em; }
-.msg .md h2 { font-size: 1.15em; }
-.msg .md h3 { font-size: 1.08em; }
+/* Markdown resets inherited plain-message whitespace; code alone keeps it. */
+.msg .md { line-height: 1.6; white-space: normal; }
+.msg .md > :first-child { margin-top: 0; }
+.msg .md > :last-child { margin-bottom: 0; }
+.msg .md p { margin: 0 0 0.8em; }
+.msg .md h1, .msg .md h2, .msg .md h3, .msg .md h4, .msg .md h5, .msg .md h6 { margin: 1.2em 0 0.5em; line-height: 1.35; font-weight: 600; }
+.msg .md h1 { font-size: 1.45em; }
+.msg .md h2 { font-size: 1.3em; }
+.msg .md h3 { font-size: 1.15em; }
+.msg .md h4 { font-size: 1.05em; }
+.msg .md h5, .msg .md h6 { font-size: 1em; }
 .msg .md code {
   font-family: var(--vscode-editor-font-family, monospace);
-  background: var(--vscode-textCodeBlock-background, rgba(128,128,128,.12));
+  color: var(--vscode-textPreformat-foreground, var(--vscode-editor-foreground));
+  background: var(--vscode-textCodeBlock-background, var(--vscode-editor-background));
   padding: 1px 4px; border-radius: 3px; font-size: 0.92em;
 }
 .msg .md pre {
-  background: var(--vscode-textCodeBlock-background, rgba(128,128,128,.12));
-  border-radius: 4px; padding: 8px; overflow-x: auto; margin: 0.6em 0;
+  max-width: 100%; min-width: 0; margin: 0.8em 0; padding: 10px;
+  background: var(--vscode-textCodeBlock-background, var(--vscode-editor-background));
+  color: var(--vscode-editor-foreground); border-radius: 4px; overflow-x: auto;
+  white-space: pre; overflow-wrap: normal; word-break: normal; tab-size: 4;
 }
-.msg .md pre code { background: transparent; padding: 0; }
-.msg .md blockquote {
-  margin: 0.4em 0; padding: 2px 10px;
-  border-left: 3px solid var(--vscode-charts-yellow, #ca9c2e);
-  color: var(--vscode-descriptionForeground);
-}
-.msg .md ul, .msg .md ol { padding-left: 1.4em; margin: 0.4em 0; }
-.msg .md li { margin: 2px 0; }
-.msg .md a { color: var(--vscode-textLink-foreground); }
-.msg .md table { border-collapse: collapse; margin: 0.6em 0; font-size: 0.95em; }
-.msg .md th, .msg .md td { border: 1px solid var(--vscode-panel-border, rgba(128,128,128,.25)); padding: 4px 8px; }
-.msg .md th { background: var(--vscode-textBlockQuote-background, rgba(128,128,128,.08)); font-weight: 600; }
-.msg .md img { max-width: 100%; }
-.msg .md hr { border: 0; border-top: 1px solid var(--vscode-panel-border, rgba(128,128,128,.25)); margin: 0.8em 0; }
+.msg .md pre code { display: block; background: none; color: var(--vscode-editor-foreground); padding: 0; line-height: 1.5; white-space: pre; overflow-wrap: normal; word-break: normal; }
+.msg .code-block { min-width: 0; max-width: 100%; margin: 0.8em 0; border: 1px solid var(--vscode-contrastBorder, var(--vscode-panel-border, var(--vscode-widget-border))); border-radius: 4px; background: var(--vscode-textCodeBlock-background, var(--vscode-editor-background)); }
+.msg .code-block-head { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 6px 10px; min-width: 0; padding: 6px 8px; border-bottom: 1px solid var(--vscode-panel-border, var(--vscode-widget-border)); background: var(--vscode-editorWidget-background, var(--vscode-editor-background)); white-space: normal; }
+.msg .code-language { min-width: 0; flex: 1 1 auto; font-family: var(--vscode-editor-font-family, monospace); font-size: 0.85em; color: var(--vscode-descriptionForeground); overflow-wrap: anywhere; }
+.msg .code-block pre { margin: 0; border-radius: 0 0 4px 4px; }
+.msg .md blockquote { margin: 0.8em 0; padding: 6px 10px; border-left: 3px solid var(--vscode-textBlockQuote-border, var(--vscode-textLink-foreground)); background: var(--vscode-textBlockQuote-background, var(--vscode-editor-background)); }
+.msg .md blockquote > :last-child { margin-bottom: 0; }
+.msg .md ul, .msg .md ol { padding-left: 1.5em; margin: 0.6em 0; }
+.msg .md li { margin: 0.25em 0; }
+.msg .md a { color: var(--vscode-textLink-foreground); text-underline-offset: 2px; }
+.msg .md a:hover { color: var(--vscode-textLink-activeForeground, var(--vscode-textLink-foreground)); }
+.msg .md table { display: block; max-width: 100%; overflow-x: auto; border-collapse: collapse; margin: 0.8em 0; font-size: 0.95em; }
+.msg .md th, .msg .md td { border: 1px solid var(--vscode-panel-border, var(--vscode-widget-border)); padding: 6px 8px; }
+.msg .md th { background: var(--vscode-textBlockQuote-background, var(--vscode-editor-background)); font-weight: 600; }
+.msg .md img { max-width: 100%; height: auto; }
+.msg .md hr { border: 0; border-top: 1px solid var(--vscode-panel-border, var(--vscode-widget-border)); margin: 1em 0; }
+
+/* Semantic VS Code theme colors, without an external light/dark token palette. */
+.msg .hljs { color: var(--vscode-editor-foreground); }
+.msg .hljs-comment, .msg .hljs-quote { color: var(--vscode-descriptionForeground); font-style: italic; }
+.msg .hljs-keyword, .msg .hljs-selector-tag, .msg .hljs-doctag { color: var(--vscode-symbolIcon-keywordForeground, var(--vscode-editor-foreground)); }
+.msg .hljs-string, .msg .hljs-regexp, .msg .hljs-template-tag, .msg .hljs-template-variable { color: var(--vscode-symbolIcon-stringForeground, var(--vscode-editor-foreground)); }
+.msg .hljs-number, .msg .hljs-literal { color: var(--vscode-symbolIcon-numberForeground, var(--vscode-editor-foreground)); }
+.msg .hljs-title, .msg .hljs-section { color: var(--vscode-symbolIcon-functionForeground, var(--vscode-editor-foreground)); }
+.msg .hljs-built_in, .msg .hljs-type, .msg .hljs-title.class_ { color: var(--vscode-symbolIcon-classForeground, var(--vscode-editor-foreground)); }
+.msg .hljs-attr, .msg .hljs-attribute, .msg .hljs-property { color: var(--vscode-symbolIcon-propertyForeground, var(--vscode-editor-foreground)); }
+.msg .hljs-variable, .msg .hljs-params, .msg .hljs-subst { color: var(--vscode-symbolIcon-variableForeground, var(--vscode-editor-foreground)); }
+.msg .hljs-tag, .msg .hljs-name, .msg .hljs-selector-class, .msg .hljs-selector-id { color: var(--vscode-symbolIcon-namespaceForeground, var(--vscode-editor-foreground)); }
+.msg .hljs-meta, .msg .hljs-symbol, .msg .hljs-bullet, .msg .hljs-link { color: var(--vscode-textLink-foreground); }
+.msg .hljs-addition { color: var(--vscode-gitDecoration-addedResourceForeground, var(--vscode-editor-foreground)); }
+.msg .hljs-deletion { color: var(--vscode-gitDecoration-deletedResourceForeground, var(--vscode-editor-foreground)); }
+.msg .hljs-emphasis { font-style: italic; }
+.msg .hljs-strong { font-weight: 600; }
+
+/* Preserve readable contrast when a high-contrast theme's token colors vary. */
+body.vscode-high-contrast .msg .hljs span, body.vscode-high-contrast-light .msg .hljs span { color: var(--vscode-editor-foreground); }
 
 /* System item (collapsed by default) */
 .system {
@@ -336,11 +378,10 @@ textarea { resize: none; min-height: 60px; max-height: 200px; width: 100%; }
 .usage-grid .usage-cell span { font-size: 9.5px; color: var(--vscode-descriptionForeground); text-transform: uppercase; letter-spacing: .3px; }
 
 /* ── v0.1.0: session search / event inspector subpanels ─────────────────── */
-.subpanel { border: 1px solid var(--vscode-panel-border, rgba(128,128,128,.25)); border-radius: 5px; margin: 6px 0; padding: 7px 8px; background: var(--vscode-editorWidget-background, transparent); }
-.subpanel-head { display: flex; align-items: center; gap: 6px; font-size: 11px; font-weight: 600; margin-bottom: 6px; }
+.subpanel { min-width: 0; border: 1px solid var(--vscode-contrastBorder, var(--vscode-panel-border, var(--vscode-widget-border))); border-radius: 5px; margin: 6px 10px; padding: 10px; background: var(--vscode-editorWidget-background, var(--vscode-sideBar-background)); }
+.subpanel-head { display: flex; align-items: center; flex-wrap: wrap; gap: 6px; margin-bottom: 10px; }
+.subpanel-title { display: flex; align-items: center; gap: 6px; flex: 1 1 0; min-width: 0; margin: 0; font-size: 1em; line-height: 1.4; font-weight: 600; overflow-wrap: anywhere; }
 .subpanel-head button { margin-left: 0; flex: 0 0 auto; }
-.subpanel-head button + button { margin-left: auto; }
-.subpanel-head span:first-child { flex: 1; }
 
 /* Settings and help. One row per knob: what it is, what it does, and the control
    — because the alternative was a list of command-palette entries with no way to
@@ -381,4 +422,29 @@ textarea { resize: none; min-height: 60px; max-height: 200px; width: 100%; }
 .insp-time { color: var(--vscode-descriptionForeground); flex: 0 0 62px; }
 .insp-kind { color: var(--vscode-charts-blue, #4aa3ff); flex: 0 0 auto; }
 .insp-summary { color: var(--vscode-foreground, inherit); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+/* Keep long text inside the sidebar; intentional wide content scrolls locally. */
+.ws-name, .model-note, .set-note { overflow-wrap: anywhere; }
+.tool .t-head { flex-wrap: wrap; }
+.tool .t-title { min-width: 0; overflow-wrap: anywhere; }
+.tool .t-name { max-width: 100%; overflow-wrap: anywhere; }
+#input-area { min-width: 0; }
+.subpanel .row input { min-width: 0; }
+.set-inline { flex-wrap: wrap; }
+.input-row { flex-wrap: wrap; }
+@media (max-width: 360px) {
+  .brand-bar { gap: 6px; }
+  .brand-bar .toolbar { width: 100%; justify-content: flex-end; }
+  #messages { padding: 8px; gap: 10px; }
+  .msg { padding: 8px; }
+  .subpanel { margin-right: 8px; margin-left: 8px; padding: 8px; }
+  .set-row { flex-wrap: wrap; gap: 4px; }
+  .set-label { flex-basis: 100%; padding-top: 0; }
+  .set-main { flex-basis: 100%; }
+  .subpanel .row { flex-wrap: wrap; }
+  .subpanel .row input { flex-basis: 100%; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .dot.connecting, .cursor { animation: none; }
+}
 `

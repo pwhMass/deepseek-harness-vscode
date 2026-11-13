@@ -6,12 +6,12 @@ export const HTML_SKELETON = /* html */ `
     <img id="brand-icon" alt="" style="display:none;" />
     <span class="brand-name">DeepSeek Harness</span>
     <div class="toolbar">
-      <button id="btn-settings" class="secondary icon" title="Settings and help">⚙</button>
-      <button id="btn-search" class="secondary icon" title="Search sessions (F6)">🔍</button>
-      <button id="btn-inspector" class="secondary icon" title="Live event inspector (F7)">📡</button>
-      <button id="btn-attach" class="secondary icon" title="Attach files to session (F8)">📎</button>
-      <button id="toggle-sys" class="secondary icon" title="Show/hide system messages (runtime context, plugin injections)" style="display:none;">SYS</button>
-      <button id="move-right" class="secondary icon" title="Move to right side bar">⇲</button>
+      <button id="btn-settings" class="secondary icon" title="Settings and help" aria-label="Settings and help"><i class="codicon codicon-settings-gear" aria-hidden="true"></i></button>
+      <button id="btn-search" class="secondary icon" title="Search sessions (F6)" aria-label="Search sessions (F6)"><i class="codicon codicon-search" aria-hidden="true"></i></button>
+      <button id="btn-inspector" class="secondary icon" title="Live event inspector (F7)" aria-label="Live event inspector (F7)"><i class="codicon codicon-radio-tower" aria-hidden="true"></i></button>
+      <button id="btn-attach" class="secondary icon" title="Attach files to session (F8)" aria-label="Attach files to session (F8)"><i class="codicon codicon-attach" aria-hidden="true"></i></button>
+      <button id="toggle-sys" class="secondary icon" title="Show/hide system messages (runtime context, plugin injections)" aria-label="Show/hide system messages (runtime context, plugin injections)" style="display:none;"><i class="codicon codicon-terminal" aria-hidden="true"></i></button>
+      <button id="move-right" class="secondary icon" title="Move to right side bar" aria-label="Move to right side bar"><i class="codicon codicon-layout-sidebar-right" aria-hidden="true"></i></button>
     </div>
   </div>
 
@@ -33,23 +33,23 @@ export const HTML_SKELETON = /* html */ `
     <div id="ws-pending" class="ws-pending" style="display:none;"></div>
     <div class="row" style="margin-top:6px;">
       <select id="session-select" title="Session"></select>
-      <button id="new-session" class="secondary icon" title="New session" style="flex:0 0 auto;">＋</button>
-      <button id="refresh" class="secondary icon" title="Refresh" style="flex:0 0 auto;">⟳</button>
+      <button id="new-session" class="secondary icon" title="New session" aria-label="New session" style="flex:0 0 auto;"><i class="codicon codicon-add" aria-hidden="true"></i></button>
+      <button id="refresh" class="secondary icon" title="Refresh" aria-label="Refresh" style="flex:0 0 auto;"><i class="codicon codicon-refresh" aria-hidden="true"></i></button>
     </div>
   </div>
 
   <div id="settings-panel" class="subpanel" style="display:none;">
     <div class="subpanel-head">
-      <span>⚙ Settings &amp; help</span>
-      <button id="settings-close" class="secondary icon" title="Close">✕</button>
+      <h2 class="subpanel-title"><i class="codicon codicon-settings-gear" aria-hidden="true"></i>Settings &amp; help</h2>
+      <button id="settings-close" class="secondary icon" title="Close" aria-label="Close settings and help"><i class="codicon codicon-close" aria-hidden="true"></i></button>
     </div>
     <div id="settings-body"></div>
   </div>
 
   <div id="search-panel" class="subpanel" style="display:none;">
     <div class="subpanel-head">
-      <span>🔍 Search sessions</span>
-      <button id="search-close" class="secondary icon" title="Close">✕</button>
+      <h2 class="subpanel-title"><i class="codicon codicon-search" aria-hidden="true"></i>Search sessions</h2>
+      <button id="search-close" class="secondary icon" title="Close" aria-label="Close session search"><i class="codicon codicon-close" aria-hidden="true"></i></button>
     </div>
     <div class="row">
       <input id="search-input" type="text" placeholder="Full-text query…" />
@@ -61,14 +61,15 @@ export const HTML_SKELETON = /* html */ `
 
   <div id="inspector-panel" class="subpanel" style="display:none;">
     <div class="subpanel-head">
-      <span>📡 Event inspector</span>
-      <button id="inspector-clear" class="secondary" title="Clear buffer">Clear</button>
-      <button id="inspector-close" class="secondary icon" title="Close">✕</button>
+      <h2 class="subpanel-title"><i class="codicon codicon-radio-tower" aria-hidden="true"></i>Event inspector</h2>
+      <button id="inspector-clear" class="secondary" title="Clear buffer" aria-label="Clear event buffer">Clear</button>
+      <button id="inspector-close" class="secondary icon" title="Close" aria-label="Close event inspector"><i class="codicon codicon-close" aria-hidden="true"></i></button>
     </div>
     <div id="inspector-list" class="inspector-list"></div>
   </div>
 
   <div id="messages"></div>
+  <div id="copy-status" role="status" aria-live="polite" class="sr-only"></div>
 
   <div id="input-area">
     <!-- Anything the Host is blocked on: approvals and ask_user_question

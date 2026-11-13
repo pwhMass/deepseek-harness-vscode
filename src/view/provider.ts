@@ -382,6 +382,8 @@ export class HarnessWebviewViewProvider implements vscode.WebviewViewProvider {
     ].join('; ')
 
     const mdSrc = this.getMarkdownItSource()
+    const highlightUri = webview.asWebviewUri(vscode.Uri.joinPath(this.deps.extensionUri, 'media', 'highlight.min.js'))
+    const codiconsUri = webview.asWebviewUri(vscode.Uri.joinPath(this.deps.extensionUri, 'media', 'codicons', 'codicon.css'))
 
     return /* html */ `<!DOCTYPE html>
 <html lang="en">
@@ -390,12 +392,14 @@ export class HarnessWebviewViewProvider implements vscode.WebviewViewProvider {
 <meta http-equiv="Content-Security-Policy" content="${csp}" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>DeepSeek Harness</title>
+<link rel="stylesheet" href="${codiconsUri}" />
 <style>
 ${STYLES}
 </style>
 </head>
 <body>
 ${HTML_SKELETON}
+<script nonce="${nonce}" src="${highlightUri}"></script>
 <script nonce="${nonce}">
 ${mdSrc}
 </script>

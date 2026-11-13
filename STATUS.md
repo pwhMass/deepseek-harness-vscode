@@ -1,6 +1,32 @@
 # DSH 0.2.2-rc.2 compatibility work
 
-Updated: 2026-11-12. Status: core protocol compatibility with **0.2.2-rc.2 verified**; local VSIX built. Native-window/Remote–WSL acceptance remains outside measured coverage.
+Updated: 2026-11-14. Status: **0.4.2 sidebar UI polish** implemented on `feat/ui-polish`, based on `8affb63`; core protocol compatibility with **0.2.2-rc.2 retained**. Native-window/Remote–WSL acceptance remains outside measured coverage.
+
+## 0.4.2 UI polish — verified implementation batch
+
+- Webview-only highlight.js common build, pinned to `@highlightjs/cdn-assets@11.12.0`. Explicit language grammars only; unknown/untagged languages, grammar failures, a missing highlighter, and blocks over 100,000 UTF-16 code units fall back to escaped plain text. `html: false` and the existing link policy remain in place.
+- Fenced and indented code blocks have a dedicated header with a copy button, never an overlay. Clipboard uses `navigator.clipboard.writeText`, then an off-screen textarea and `execCommand('copy')`; success/failure is reported once through button text and a polite live region. User/assistant message copy returns the original message text/Markdown, without reasoning or toolbar labels.
+- Toolbar/new/refresh/close buttons use local codicons, preserving IDs/titles and adding accessible names. System-message toggle retains its icon on state updates and reports `aria-pressed`.
+- Message cards distinguish user/assistant, follow VS Code font settings, strengthen heading sizes/spacing, and constrain wide code/tables to local horizontal scrolling. New colors use VS Code theme variables; high-contrast token text favors legibility. Native session select is unchanged.
+- **No invented timestamps:** the existing conversation projection contains no user/assistant timestamp field. This UI-only batch does not change that projection or infer dates from sequence numbers.
+- Build copies browser assets and original licenses to `media/`; provider loads the local highlighter with the existing nonce and codicon stylesheet with webview resource URIs. Existing CSP, `font-src`, and resource roots are unchanged. No new extension-host runtime dependency, RPC, approval, review/diff, session-binding, or `src/harness/**` change. Extension ID remains `lucasliang.harness-connector-deepseek`.
+- License correction: codicon **code is MIT**, while its **icons/font are CC BY 4.0** (not MIT). Both original licenses and Microsoft attribution ship in `media/`; highlight.js is BSD-3-Clause. See [third-party notices](media/THIRD-PARTY-NOTICES.md).
+
+Final release verification (2026-11-14):
+
+- `npm run typecheck`: passed.
+- `node --import tsx scripts/protocol-test.ts`: **602 assertions passed**.
+- `DSH_TEST_RUNTIME=/path/to/isolated-rc2-runtime npm run rc2-test`: passed with the already-installed **0.2.2-rc.2** test runtime. Initial invocation without this required environment variable stopped at the fixture prerequisite; no product defect or Host change.
+- `npm run build`: passed; all browser assets copied.
+- Additional generated `dist/ui-polish-test.ts` VM/DOM-stub probe: **55 checks passed**, using the real shipped markdown-it/highlight.js bundles. Covers highlighted TypeScript, unknown/no language, escaped code/language labels, indented blocks, missing/broken highlighter, large-block fallback, unsafe HTML/links, exact clipboard text, fallback denial/exception/cleanup, focus/selection restoration, feedback reset, message copy, delegated code copy, no fabricated dates, and font glyph availability. This is not native GUI testing; the generated probe stays local under ignored `dist/` and is excluded from the VSIX.
+- `npm audit`: reports **21 existing dependency-tree advisories (12 moderate, 9 high)**; neither newly added browser asset package is listed. No unrelated dependency upgrade or `audit fix` was applied; this batch is not a dependency/security audit.
+- `npx --no-install vsce package --no-dependencies --out dist/deepseek-harness-vscode-0.4.2-ui.vsix`: passed, including its production prepublish build. Package inspection confirms version/extension ID, the bundled host code, all six local resource/license copies and third-party attribution, and excludes dependencies, source, generated test probes and other VSIX files.
+- Delivery: `dist/deepseek-harness-vscode-0.4.2-ui.vsix`; SHA256 is recorded beside the final archive in `dist/deepseek-harness-vscode-0.4.2-ui.vsix.sha256` after the final documentation-inclusive packaging pass. The digest is intentionally outside the packaged status document to avoid a self-referential archive hash.
+- Final diff/scope review and an independent read-only UI/CSP/clipboard/resource review found no blocking issues; `git diff --check` passed. Delivery source branch: the authorized fork's `feat/ui-polish`; Git commit/push outcome is reported with delivery, not fabricated inside its own commit.
+
+Uncovered/manual acceptance: after **Extensions: Install from VSIX…** and **Developer: Reload Window**, check dark/light/high-contrast themes, narrow sidebar, long code/table scrolling, keyboard focus and actual clipboard permissions. No extension is installed into the user's editor, and no VS Code configuration or production Host/profile is changed. Real-Host native approval and Diff interactions are not re-exercised in this UI batch; the inherited limits below still apply.
+
+---
 
 ## Scope and provenance
 

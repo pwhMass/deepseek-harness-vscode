@@ -5,6 +5,26 @@ All notable changes to this project are documented in this file.
 The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),  
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.4.2] — 2026-11-14
+
+### Added
+
+- **Sidebar code highlighting** with a local highlight.js common browser build. Unknown/untagged languages, missing/broken grammars and blocks over 100,000 UTF-16 code units remain escaped plain text; no auto-detection or remote asset request.
+- **Copy code** for fenced and indented blocks, in a separate header that never covers code. Async clipboard falls back to an off-screen textarea/legacy copy; one-shot success/failure feedback is also announced to assistive technology.
+- **Copy message** for user/assistant text, preserving original Markdown (excluding reasoning and UI labels).
+
+### Changed
+
+- Emoji toolbar/new/refresh/close controls become local codicons with titles and accessible names. Message cards, heading hierarchy, spacing, theme-token syntax colors, keyboard focus, narrow-sidebar scrolling and high-contrast legibility are improved.
+- Browser assets and licenses are copied during the build; the existing nonce CSP, local font policy and extension ID are unchanged. Both additions are build-time dependencies, not extension-host runtime dependencies.
+- **License clarification:** codicon code is MIT, icons/font are CC BY 4.0; both licenses and Microsoft attribution are included. highlight.js is BSD-3-Clause.
+
+### Verification and limits
+
+- Typecheck, **602 protocol assertions**, offline RC2 reconnect/search regression, production build and an additional **55-check VM/DOM-stub UI probe** passed. Final VSIX packaging/checksum status is recorded in [STATUS.md](STATUS.md).
+- True VS Code light/dark/high-contrast, keyboard/clipboard and narrow-sidebar visual acceptance remains for the user after installing and reloading. No editor installation/configuration or production Host change was performed.
+- Native session select and protocol/approval/review/diff/session-binding logic are unchanged. The current message projection has no timestamps, so none are fabricated. Known dependency-tree audit advisories remain outside this UI batch; see STATUS.md.
+
 ## [0.4.1] — 2026-10-22
 
 Tagline: **model and thinking depth moved into the editor, and "Open Web UI" finally has a one-command end-to-end check.**
