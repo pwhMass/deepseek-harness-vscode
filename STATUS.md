@@ -1,6 +1,14 @@
 # DSH 0.2.2-rc.2 compatibility work
 
-Updated: 2026-11-14. Status: **0.4.3 default-collapsed execution/Thinking UI** implemented and release gates passed on `feat/ui-polish`; **0.2.2-rc.2 compatibility retained**. WSL installation of 0.4.2, cookie authentication and native session attachment were verified earlier; the explicitly authorized 0.4.3 WSL update is recorded separately after packaging. Full native visual/theme/code-copy acceptance remains pending.
+Updated: 2026-11-14. Status: **0.4.3 default-collapsed execution/Thinking UI** implemented, release gates passed and **WSL installation verified** on `feat/ui-polish`; **0.2.2-rc.2 compatibility retained**. Existing cookie authentication/settings are preserved. Full native visual/theme/code-copy acceptance remains pending reload.
+
+## 0.4.3 WSL installation — verified follow-up
+
+- User explicitly selected **direct WSL update** after the folding UI's release checks. Official VS Code Server extension management successfully updated the existing WSL extension from **0.4.2 to 0.4.3** without starting a replacement server.
+- Installed-extension listing confirms `lucasliang.harness-connector-deepseek@0.4.3`. Installed package identity and eight bundle/resource/license files match the final VSIX byte-for-byte.
+- WSL machine-settings bytes are unchanged before/after installation: existing `127.0.0.1:3080`, `paste` mode, discovery and approvals remain intact. No credential read, new login, configuration write or DSH Host restart was needed for this update.
+- Installed artifact: `dist/deepseek-harness-vscode-0.4.3-folding.vsix`, implementation commit `cd72799`; SHA256 `cadf8ffa0fe13c0fc48a6d53c3e656db2415e18e75815d5ed2a74056da55ed67`. This post-install record does not rebuild or change the archive; its embedded release status is the pre-install implementation record.
+- Next: **Developer: Reload Window** in the WSL VS Code window. Verify default-closed Thinking/process summaries, expand/collapse during streaming, final-answer readability and preserved review/approval visibility. Installation is verified; active-window loading and native visual/clipboard/keyboard acceptance are not yet claimed.
 
 ## 0.4.3 default folding — verified implementation batch
 
@@ -24,7 +32,7 @@ Verification:
 - Production build and `npx --no-install vsce package --no-dependencies --ignoreFile dist/ui-package.vscodeignore --out dist/deepseek-harness-vscode-0.4.3-folding.vsix`: passed. The generated local ignore file inherits the repository's exclusions and includes only `dist/extension.js` from build output, preventing old VSIX checksums and local probes/logs from leaking into the new package without changing source ignore rules.
 - Artifact: `dist/deepseek-harness-vscode-0.4.3-folding.vsix`; final SHA256 is recorded beside it in `dist/deepseek-harness-vscode-0.4.3-folding.vsix.sha256` after the documentation-inclusive packaging pass, avoiding a self-referential archive hash.
 
-Limits/next acceptance: this projection has no explicit final-answer field, so multiple ordinary text-only assistant messages remain unfolded. Review-visible barriers may produce more than one process summary per turn. In uncommon settlement/delta ordering, a physical fragment can move or split and its expanded choice may reset; all content is retained. Native VS Code visual, real keyboard/clipboard and light/dark/high-contrast acceptance are not claimed by VM tests. User explicitly selected direct WSL update after the release gates; install/byte verification will be recorded separately. Existing `127.0.0.1:3080` / `paste` authentication settings must remain untouched.
+Limits/next acceptance: this projection has no explicit final-answer field, so multiple ordinary text-only assistant messages remain unfolded. Review-visible barriers may produce more than one process summary per turn. In uncommon settlement/delta ordering, a physical fragment can move or split and its expanded choice may reset; all content is retained. Native VS Code visual, real keyboard/clipboard and light/dark/high-contrast acceptance are not claimed by VM tests. User explicitly selected direct WSL update after the release gates; installation/byte verification is recorded above. Existing `127.0.0.1:3080` / `paste` authentication settings remain untouched.
 
 ## WSL authentication — 2026-11-14 follow-up
 
