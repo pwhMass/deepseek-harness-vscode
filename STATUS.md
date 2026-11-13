@@ -1,6 +1,15 @@
 # DSH 0.2.2-rc.2 compatibility work
 
-Updated: 2026-11-14. Status: **0.4.2 sidebar UI polish** implemented on `feat/ui-polish`, based on `8affb63`; core protocol compatibility with **0.2.2-rc.2 retained**. Native-window/Remote–WSL acceptance remains outside measured coverage.
+Updated: 2026-11-14. Status: **0.4.2 sidebar UI polish** implemented on `feat/ui-polish`, based on `8affb63`; core protocol compatibility with **0.2.2-rc.2 retained**. **WSL installation verified** after the user's explicit follow-up request; native-window visual/interaction acceptance remains pending reload.
+
+## WSL installation — 2026-11-14 follow-up
+
+- User explicitly requested installation into WSL after the build-only delivery, superseding the initial no-install constraint for this step only.
+- Updated the existing WSL workspace extension from **0.4.1 to 0.4.2**, using the already-installed VS Code Server extension-management CLI and an explicit WSL extensions directory. No replacement server was started and no VS Code configuration or DSH Host/profile was changed.
+- CLI installation exited 0; its installed-extension listing now reports `lucasliang.harness-connector-deepseek@0.4.2`.
+- Verified installed package version/identity and byte-for-byte equality with the delivered VSIX for `dist/extension.js`, highlight.js, codicon CSS/font, licenses and third-party notices.
+- Installed archive: `dist/deepseek-harness-vscode-0.4.2-ui.vsix`, source commit `55c4eaa`; SHA256 `d684ae53016b4fc7332a210aed431c77512af335f3d6222e96edae6d6abd33b8`. This deployment note is recorded **after** packaging; the original archive was not rebuilt or changed.
+- Next: run **Developer: Reload Window** in the VS Code window connected to WSL, then perform the theme/narrow-sidebar/clipboard visual acceptance below. Installation is verified; active-window loading and real clipboard behavior are not yet claimed.
 
 ## 0.4.2 UI polish — verified implementation batch
 
@@ -24,7 +33,7 @@ Final release verification (2026-11-14):
 - Delivery: `dist/deepseek-harness-vscode-0.4.2-ui.vsix`; SHA256 is recorded beside the final archive in `dist/deepseek-harness-vscode-0.4.2-ui.vsix.sha256` after the final documentation-inclusive packaging pass. The digest is intentionally outside the packaged status document to avoid a self-referential archive hash.
 - Final diff/scope review and an independent read-only UI/CSP/clipboard/resource review found no blocking issues; `git diff --check` passed. Delivery source branch: the authorized fork's `feat/ui-polish`; Git commit/push outcome is reported with delivery, not fabricated inside its own commit.
 
-Uncovered/manual acceptance: after **Extensions: Install from VSIX…** and **Developer: Reload Window**, check dark/light/high-contrast themes, narrow sidebar, long code/table scrolling, keyboard focus and actual clipboard permissions. No extension is installed into the user's editor, and no VS Code configuration or production Host/profile is changed. Real-Host native approval and Diff interactions are not re-exercised in this UI batch; the inherited limits below still apply.
+Uncovered/manual acceptance: after installation and **Developer: Reload Window**, check dark/light/high-contrast themes, narrow sidebar, long code/table scrolling, keyboard focus and actual clipboard permissions. The build/verification batch itself did not install an extension; the separately authorized WSL installation is recorded above. No VS Code configuration or production Host/profile is changed. Real-Host native approval and Diff interactions are not re-exercised in this UI batch; the inherited limits below still apply.
 
 ---
 
