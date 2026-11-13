@@ -1,6 +1,13 @@
 # DSH 0.2.2-rc.2 compatibility work
 
-Updated: 2026-11-14. Status: **0.4.2 sidebar UI polish** implemented on `feat/ui-polish`, based on `8affb63`; core protocol compatibility with **0.2.2-rc.2 retained**. **WSL installation verified** after the user's explicit follow-up request; native-window visual/interaction acceptance remains pending reload.
+Updated: 2026-11-14. Status: **0.4.2 sidebar UI polish** implemented on `feat/ui-polish`, based on `8affb63`; core protocol compatibility with **0.2.2-rc.2 retained**. **WSL installation, cookie authentication and native session attachment verified** after the user's explicit follow-up requests; full visual/theme/code-copy acceptance remains pending.
+
+## WSL authentication — 2026-11-14 follow-up
+
+- After reloading, the user reported authentication failure and explicitly requested help restoring login. Screenshot and active extension log agreed: the saved session belonged to `127.0.0.1:3080`, while the configured endpoint was `localhost:3080`. The extension correctly treats these as different cookie authorities.
+- Changed only the WSL remote setting `deepseekHarness.host` from `localhost` to `127.0.0.1`. Kept port `3080`, `sessionMode: paste`, discovery and approval settings unchanged. No token/credential file was read, no new signing secret/session was minted, and no Host was started/restarted.
+- The running extension's configuration listener automatically reconnected. Its log confirms successful `session/list` negotiation, `auth=cookie`, the `$events` socket and Host `ready`, followed by an open `session/follow` socket and a history snapshot. Authentication and session attachment are now verified in the native WSL extension host; visual/code-copy/theme acceptance remains separate.
+- The machine-specific setting stays local and is not committed. This source record contains no cookie, launch token or signing key; the delivered VSIX is unchanged.
 
 ## WSL installation — 2026-11-14 follow-up
 
